@@ -55,9 +55,9 @@ class SearchTest(TestCase):
             name="Toyota",
             country="Japan"
         )
-        (Manufacturer.objects.create(
+        Manufacturer.objects.create(
             name="Tesla",
-            country="USA")
+            country="USA"
         )
         url = reverse("taxi:manufacturer-list")
         response = self.client.get(
