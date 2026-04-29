@@ -1,9 +1,8 @@
-from enum import unique
-
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from taxi.models import Manufacturer, Driver
+from taxi.models import Manufacturer, Driver, Car
 from taxi.forms import DriverLicenseUpdateForm
 
 
@@ -34,12 +33,76 @@ class SearchTest(TestCase):
             password="racer4424",
             license_number="CBA12345",
         )
-        self.client.login(username="test1", password="racer2242")
+        self.client.login(
+            username="test1",
+            password="racer2242"
+        )
         response = self.client.get(
             reverse("taxi:driver-list"),
             {"username": "unique"})
         self.assertContains(response, "test1")
         self.assertNotContains(response, "test2")
+
+    def test_manufacturer_search_by_name(self):
+        user = get_user_model().objects.create_user(
+            username="testuser",
+            password="password"
+        )
+
+        self.client.force_login(user)
+
+        Manufacturer.objects.create(
+            name="Toyota",
+            country="Japan"
+        )
+        (Manufacturer.objects.create(
+            name="Tesla",
+            country="USA")
+        )
+        url = reverse("taxi:manufacturer-list")
+        response = self.client.get(
+            url,
+            {"name": "Tes"}
+        )
+        self.assertContains(response, "Tesla")
+        self.assertNotContains(response, "Toyota")
+
+        response = self.client.get(url, {"name": ""})
+
+        self.assertContains(response, "Tesla")
+        self.assertContains(response, "Toyota")
+
+    def test_car_search_by_model(self):
+        user = get_user_model().objects.create_user(
+            username="testuser",
+            password="password"
+        )
+        manufacturer = Manufacturer.objects.create(
+            name="Tesla",
+            country="USA"
+        )
+        Car.objects.create(
+            model="Model S",
+            manufacturer=manufacturer
+        )
+        Car.objects.create(
+            model="Model X",
+            manufacturer=manufacturer
+        )
+        Car.objects.create(
+            model="Civic",
+            manufacturer=manufacturer
+        )
+        self.client.force_login(user)
+
+        url = reverse("taxi:car-list")
+
+        response = self.client.get(url, {"model": "Model"})
+        self.assertContains(response, "Model S")
+        self.assertContains(response, "Model X")
+        self.assertNotContains(response, "Civic")
+        response = self.client.get(url, {"model": ""})
+        self.assertContains(response, "Civic")
 
 
 class AccessTest(TestCase):
